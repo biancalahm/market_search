@@ -150,7 +150,6 @@ market_search/
 ├── test/
 │
 ├── main.py
-├── main_db.py
 ├── requirements.txt
 └── README.md
 ```
@@ -191,9 +190,7 @@ Windows:
 pip install -r requirements.txt
 ```
 
----
-
-## 🔐 Variáveis de Ambiente
+## Variáveis de Ambiente
 
 Crie um arquivo `.env`:
 
@@ -212,9 +209,7 @@ PORT=8000
 | DATABASE_URL       | String de conexão PostgreSQL |
 | PORT               | Porta da aplicação          |
 
----
-
-## 🗄 Banco de Dados
+## Banco de Dados
 
 Criar as tabelas:
 
@@ -228,9 +223,7 @@ O script utiliza os modelos SQLAlchemy definidos em:
 database/models.py
 ```
 
----
-
-## ▶️ Executando a Aplicação
+## Executando a Aplicação
 
 ```bash
 python main.py
@@ -242,9 +235,7 @@ Servidor disponível em:
 http://localhost:8000
 ```
 
----
-
-## 🐳 Docker
+### Docker
 
 Build:
 
@@ -263,33 +254,11 @@ docker run \
 supermarket-bot
 ```
 
----
-
-## ☁️ Deploy
+## Deploy
 
 O ambiente de produção está hospedado no Render.
 
-### Fluxo de produção
-
-```text
-Telegram
-    │
-    ▼
-Render
-    │
-    ▼
-FastAPI
-    │
-    ▼
-Gemini
-    │
-    ▼
-PostgreSQL
-```
-
----
-
-## 🧪 Testes
+### Testes
 
 Executar teste de extração:
 
@@ -303,9 +272,7 @@ Executar todos os testes:
 pytest
 ```
 
----
-
-## ⚠️ Limitações Atuais
+## Limitações Atuais
 
 O projeto encontra-se em fase MVP.
 
@@ -316,9 +283,7 @@ Limitações conhecidas:
 - Produtos com descrições muito abreviadas podem exigir melhorias na normalização.
 - Notas fiscais extensas podem demandar processamento adicional.
 
----
-
-## 🔮 Roadmap
+## Roadmap
 
 ### Curto Prazo
 
@@ -341,8 +306,6 @@ Limitações conhecidas:
 - Divisão de despesas
 - Machine Learning para previsão de preços
 
----
-
-## 📄 Licença
+## Licença
 
 Projeto desenvolvido para fins de estudo, validação de produto e experimentação com IA aplicada à automação financeira doméstica.
