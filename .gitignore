@@ -1,0 +1,19 @@
+# Arquivos de configuração local (SENHAS E CHAVES)
+.env
+
+# Pastas de ambiente virtual do Python
+venv/
+.venv/
+env/
+
+# Arquivos temporários do Python e cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Pastas de IDEs (VS Code / PyCharm)
+.vscode/
+.idea/
