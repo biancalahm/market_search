@@ -1,32 +1,61 @@
+version: '3.8'
+
 services:
+  # 🗄️ BANCO DE DADOS: PostgreSQL do MVP
   postgres:
     image: postgres:17
     container_name: smartmarket-postgres
-
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-
     ports:
       - "${POSTGRES_PORT}:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
 
+  # 📊 GERENCIADOR DO BANCO: PgAdmin
   pgadmin:
     image: dpage/pgadmin4
     container_name: smartmarket-pgadmin
-
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@smartmarket.com
       PGADMIN_DEFAULT_PASSWORD: admin123
-
     ports:
       - "5050:80"
-
     depends_on:
       - postgres
+    restart: always
+
+  # 🌐 APLICAÇÃO: FastAPI Smart Market Bot
+  app:
+    build: .
+    container_name: smartmarket-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app # Permite que alterações no seu código local atualizem o contêiner ao vivo (Hot Reload)
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: always
+
+  # 🔗 TÚNEL AUTOMÁTICO: Ngrok Link para o Telegram Webhook
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: smartmarket-ngrok
+    command:
+      - "http"
+      - "app:8000" # Aponta cirurgicamente para o contêiner do seu app FastAPI
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN} # Puxa o token do seu arquivo .env local
+    ports:
+      - "4040:4040" # Interface Web local para você capturar a URL gerada e auditar os payloads do Telegram
+    depends_on:
+      - app
+    restart: always
 
 volumes:
   postgres_data:
