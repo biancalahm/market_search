@@ -87,7 +87,7 @@ class ComprasService:
                 f"No dia {data_fmt}, você comprou esse mesmo produto no *{historico_local.mercado}* "
                 f"por *R$ {historico_local.valor_unitario:.2f}* (Quantidade: {historico_local.quantidade}).")
     
-    def obtener_estado_conversa(self, chat_id: int):
+    def obter_estado_conversa(self, chat_id: int):
         """Busca se o chat possui alguma pendência de resposta"""
         return self.db.query(EstadoConversa).filter(EstadoConversa.chat_id == chat_id).first()
 
