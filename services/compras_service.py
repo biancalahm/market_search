@@ -1,6 +1,5 @@
-#services/ComprasService.py
 from sqlalchemy.orm import Session
-from database.models import Produto, HistoricoPreco, Grupo, Usuario, GrupoUsuario
+from database.models import Produto, HistoricoPreco, Grupo, Usuario, GrupoUsuario, EstadoConversa
 from services.gemini_service import ItemNotaFiscal, NotaFiscalEstruturada
 from datetime import datetime
 
@@ -12,33 +11,25 @@ class ComprasService:
         """Garante a normalização do produto (RF06), evitando duplicidade na tabela de produtos"""
         nome_upper = nome_limpo.strip().upper()
         
-        # Tenta encontrar o produto já cadastrado pelo nome normalizado em caixa alta
         produto = self.db.query(Produto).filter(Produto.nome_normalizado == nome_upper).first()
         
         if not produto:
-            # Se não existe, cria o registro do produto genérico
             produto = Produto(nome_normalizado=nome_upper, categoria=categoria)
             self.db.add(produto)
-            self.db.flush()  # Executa o insert para gerar o ID sem comitar a transação inteira
+            self.db.flush() 
             
         return produto
 
     def salvar_nota_fiscal(self, dados_nota: NotaFiscalEstruturada, grupo_id: int):
-        """
-        Recebe o objeto estruturado da IA e persiste os dados em massa no banco.
-        Retorna a quantidade de itens salvos com sucesso.
-        """
+        """Persiste os dados da nota fiscal extraídos pela IA no banco."""
         itens_salvos = 0
         itens_salvos_list: list[dict] = []
         try:
-            # Transforma a string de data da nota (YYYY-MM-DD) em objeto datetime do Python
             data_formatada = datetime.strptime(dados_nota.data_compra, "%Y-%m-%d")
             
             for item in dados_nota.itens:
-                # 1. Resolve o ID do produto genérico/normalizado
                 produto_db = self.obter_ou_criar_produto(item.nome_produto, item.categoria)
                 
-                # 2. Monta o registro histórico (A tabela fato)
                 novo_historico = HistoricoPreco(
                     produto_id=produto_db.id,
                     grupo_id=grupo_id,
@@ -59,40 +50,59 @@ class ComprasService:
                     "valor_total": item.valor_total,
                 })
             
-            # Comita todas as operações de uma única vez (Garante atomicidade)
             self.db.commit()
             return {"count": itens_salvos, "itens": itens_salvos_list}
             
         except Exception as e:
-            self.db.rollback() # Cancela tudo se der erro no meio do caminho para não quebrar o banco
+            self.db.rollback()
             print(f"Erro crítico ao persistir nota fiscal: {e}")
             raise e
         
     def buscar_top3_precos(self, nome_produto: str):
-        """Busca os 3 menores preços registrados para produtos com nomes similares."""
-        # Aqui usamos o ILIKE para fazer uma busca textual aproximada básica
-        # Em etapas futuras, isso pode virar uma busca vetorial (embeddings)
+        """Busca as 3 compras mais baratas registradas para este produto no banco relacional"""
         query_produtos = self.db.query(Produto.id).filter(Produto.nome_normalizado.ilike(f"%{nome_produto.upper()}%")).subquery()
         
-        top3 = (self.db.query(ItemNotaFiscal, NotaFiscalEstruturada)
-                .join(NotaFiscalEstruturada)
-                .filter(ItemNotaFiscal.produto_id.in_(query_produtos))
-                .order_by(ItemNotaFiscal.valor_unitario.asc())
+        # Correção: Query executada diretamente sobre a tabela fato HistoricoPreco
+        top3 = (self.db.query(HistoricoPreco)
+                .filter(HistoricoPreco.produto_id.in_(query_produtos))
+                .order_by(HistoricoPreco.valor_unitario.asc())
                 .limit(3)
                 .all())
         return top3
 
     def analisar_tendencia_local(self, produto_id: int, mercado_atual: str) -> str:
-        """Busca compras anteriores daquele mesmo produto naquele mercado específico."""
-        historico_local = (self.db.query(ItemNotaFiscal, NotaFiscalEstruturada)
-                           .join(NotaFiscalEstruturada)
-                           .filter(ItemNotaFiscal.produto_id == produto_id)
-                           .filter(NotaFiscalEstruturada.mercado.ilike(f"%{mercado_atual}%"))
-                           .order_by(NotaFiscalEstruturada.data_compra.desc())
+        """Busca compras anteriores daquele mesmo produto naquele mercado específico para calcular tendência"""
+        # Correção: Query executada diretamente sobre a tabela fato HistoricoPreco
+        historico_local = (self.db.query(HistoricoPreco)
+                           .filter(HistoricoPreco.produto_id == produto_id)
+                           .filter(HistoricoPreco.mercado.ilike(f"%{mercado_atual.strip()}%"))
+                           .order_by(HistoricoPreco.data_compra.desc())
                            .first())
         
         if not historico_local:
-            return f"Não encontrei registros anteriores de compras deste produto no estabelecimento {mercado_atual}."
+            return f"🔍 Não encontrei registros anteriores de compras deste produto no estabelecimento *{mercado_atual}*."
             
-        item, nota = historico_local
-        return f"Tendência local: No dia {nota.data_compra.strftime('%d/%m/%Y')}, você comprou esse mesmo produto neste mercado por R$ {item.valor_unitario:.2f} (Preço total do item: R$ {item.valor_total:.2f})."
+        data_fmt = historico_local.data_compra.strftime('%d/%m/%Y')
+        return (f"📉 *Tendência local para este mercado:*\n"
+                f"No dia {data_fmt}, você comprou esse mesmo produto no *{historico_local.mercado}* "
+                f"por *R$ {historico_local.valor_unitario:.2f}* (Quantidade: {historico_local.quantidade}).")
+    
+    def obtener_estado_conversa(self, chat_id: int):
+        """Busca se o chat possui alguma pendência de resposta"""
+        return self.db.query(EstadoConversa).filter(EstadoConversa.chat_id == chat_id).first()
+
+    def salvar_estado_conversa(self, chat_id: int, estado: str, produto_id: int):
+        """Grava ou atualiza o estado atual da conversa no banco"""
+        registro = self.obter_estado_conversa(chat_id)
+        if registro:
+            registro.estado = estado
+            registro.produto_contexto_id = produto_id
+        else:
+            nuevo_estado = EstadoConversa(chat_id=chat_id, estado=estado, produto_contexto_id=produto_id)
+            self.db.add(nuevo_estado)
+        self.db.commit()
+
+    def limpar_estado_conversa(self, chat_id: int):
+        """Deleta o estado após o ciclo ser concluído com sucesso"""
+        self.db.query(EstadoConversa).filter(EstadoConversa.chat_id == chat_id).delete()
+        self.db.commit()

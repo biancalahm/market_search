@@ -84,7 +84,15 @@ class HistoricoPreco(Base):
     produto = relationship("Produto", back_populates="historicos")
     grupo = relationship("Grupo", back_populates="historicos")
 
+class EstadoConversa(Base):
+    __tablename__ = "estados_conversa"
 
+    # ID do chat ou do usuário no Telegram (BigInteger para evitar estouro)
+    chat_id = Column(BigInteger, primary_key=True)
+    estado = Column(String, nullable=False) # Ex: "AGUARDANDO_MERCADO"
+    produto_contexto_id = Column(Integer, ForeignKey("produtos.id"), nullable=True)
+    data_atualizacao = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
 # ENGINE
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
