@@ -56,7 +56,7 @@ async def processar_evento_telegram(payload: dict):
             imagem_bytes_original = await telegram_service.baixar_foto(file_id)
             imagem_bytes_tratada = ImageService.otimizar_imagem_nota(imagem_bytes_original)
             
-            # 🔍 SUB-CASO A.1: É uma Etiqueta de Preço para Cotação (/cotar)
+            # Fluxo específico para etiquetas de preço (com legenda /cotar)
             if "/cotar" in legenda or "cotar" in legenda:
                 await telegram_service.enviar_mensagem(chat_id, "*Etiqueta recebida!* Identificando produto e buscando histórico...")
                 
@@ -134,6 +134,12 @@ async def processar_evento_telegram(payload: dict):
                 await telegram_service.enviar_mensagem(chat_id, f"Você disse: '{texto}'. Em breve te trago o resultado!!")
 
     except Exception as e:
+        import traceback
+        print("\n" + "="*50)
+        print(f"ERRO CRÍTICO NO WEBHOOK: {e}")
+        traceback.print_exc()  # Isso vai imprimir o erro completo e a linha exata nos logs do Render!
+        print("="*50 + "\n")
+
         print(f"Erro ao processar mensagem do Telegram: {e}")
         await telegram_service.enviar_mensagem(chat_id, "Desculpe, ocorreu um erro interno ao processar sua solicitação.")
     finally:
