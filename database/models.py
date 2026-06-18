@@ -75,7 +75,7 @@ class HistoricoPreco(Base):
     
     produto = relationship("Produto", back_populates="historicos")
     grupo = relationship("Grupo", back_populates="historicos")
-    # 🌟 NOVA RELAÇÃO: Acesso direto ao objeto do usuário
+    # Acesso direto ao objeto do usuário
     usuario = relationship("Usuario", back_populates="historicos")
 
 

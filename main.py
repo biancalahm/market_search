@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 
 from config.settings import settings
-from database.models import inicializar_banco, SessionLocal, Grupo
+from database.models import inicializar_banco, SessionLocal, Grupo, Usuario, GrupoUsuario
 from services.telegram_service import TelegramService
 from services.gemini_service import GeminiService
 from services.compras_service import ComprasService
@@ -33,7 +33,7 @@ async def processar_evento_telegram(payload: dict):
     message = payload["message"]
     chat_id = message["chat"]["id"]  # ID do Grupo (Ex: Casa X)
     
-    # 🌟 CAPTURA DO USUÁRIO FÍSICO (Quem enviou)
+    # CAPTURA DO USUÁRIO FÍSICO (Quem enviou)
     user_info = message.get("from")
     if not user_info:
         return  # Ignora mensagens do próprio sistema/canais
@@ -83,7 +83,7 @@ async def processar_evento_telegram(payload: dict):
             
             # Fluxo específico para etiquetas de preço (com legenda /cotar)
             if "/cotar" in legenda or "cotar" in legenda:
-                await telegram_service.enviar_mensagem(chat_id, f"🔍 *{user_name}*, sua etiqueta está sendo processada! Buscando histórico...")
+                await telegram_service.enviar_mensagem(chat_id, f" *{user_name}*, sua etiqueta está sendo processada! Buscando histórico...")
                 
                 nome_produto_limpo = gemini_service.extrair_produto_etiqueta(imagem_bytes_tratada)
                 top3_resultados = compras_service.buscar_top3_precos(nome_produto_limpo)
@@ -93,12 +93,12 @@ async def processar_evento_telegram(payload: dict):
                     produto_db = compras_service.obter_ou_criar_produto(nome_produto_limpo, "MERCEARIA")
                     produto_id = produto_db.id
                 else:
-                    resposta = f"📦 *Produto:* {nome_produto_limpo}\n\n🏆 *Melhores preços encontrados:*\n"
+                    resposta = f" *Produto:* {nome_produto_limpo}\n\n*Melhores preços encontrados:*\n"
                     for idx, historico in enumerate(top3_resultados, 1):
                         data_fmt = historico.data_compra.strftime('%d/%m/%Y')
                         resposta += f"{idx}. *R$ {historico.valor_unitario:.2f}* no {historico.mercado} ({data_fmt})\n"
                     
-                    resposta += f"\n📍 *{user_name}*, em qual mercado você está agora para analisar a tendência?"
+                    resposta += f"\n *{user_name}*, em qual mercado você está agora para analisar a tendência?"
                     produto_id = top3_resultados[0].produto_id
 
                 await telegram_service.enviar_mensagem(chat_id, resposta)
@@ -107,17 +107,17 @@ async def processar_evento_telegram(payload: dict):
 
             # Fluxo padrão de Nota Fiscal
             else:
-                await telegram_service.enviar_mensagem(chat_id, f"🧾 *Nota recebida de {user_name}!* Extraindo itens com IA...")
+                await telegram_service.enviar_mensagem(chat_id, f" *Nota recebida de {user_name}!* Extraindo itens com IA...")
                 dados_nota = gemini_service.extrair_nota_fiscal(imagem_bytes_tratada)
 
-                # 🌟 AGORA PASSAMOS O USER_ID PARA O SALVAMENTO
+                
                 resultado_salvamento = compras_service.salvar_nota_fiscal(dados_nota, grupo_id=grupo.id, usuario_id=usuario.id)
                 total_salvo = resultado_salvamento.get("count", 0)
                 itens_salvos = resultado_salvamento.get("itens", [])
 
-                resposta = f"✅ *Sucesso!* {total_salvo} itens salvos no histórico da casa por *{user_name}*.\n\n"
-                resposta += f" 🏪 *Mercado:* {dados_nota.mercado}\n"
-                resposta += f" 💰 *Total Geral:* R$ {dados_nota.valor_total_nota:.2f}\n\n*Produtos Adicionados:*\n"
+                resposta = f" *Sucesso!* {total_salvo} itens salvos no histórico da casa por *{user_name}*.\n\n"
+                resposta += f"  *Mercado:* {dados_nota.mercado}\n"
+                resposta += f"  *Total Geral:* R$ {dados_nota.valor_total_nota:.2f}\n\n*Produtos Adicionados:*\n"
                 for item in itens_salvos:
                     resposta += f"- {item['nome_produto']}: R$ {item['valor_unitario']:.2f}\n"
 

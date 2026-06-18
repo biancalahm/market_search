@@ -33,7 +33,7 @@ class ComprasService:
             for item in dados_nota.itens:
                 produto_db = self.obter_ou_criar_produto(item.nome_produto, item.categoria)
                 
-                # 🌟 MODIFICADO: Inclusão do parâmetro usuario_id para diferenciar os gastos do casal
+                # Inclusão do parâmetro usuario_id para diferenciar os gastos do casal
                 novo_historico = HistoricoPreco(
                     produto_id=produto_db.id,
                     grupo_id=grupo_id,
@@ -70,7 +70,7 @@ class ComprasService:
         """
         query_produtos = self.db.query(Produto.id).filter(Produto.nome_normalizado.ilike(f"%{nome_produto.upper()}%"))
         
-        # 🌟 MODIFICADO: Adicionado filtro de isolamento por grupo_id
+        #Adicionado filtro de isolamento por grupo_id
         top3 = (self.db.query(HistoricoPreco)
                 .filter(HistoricoPreco.grupo_id == grupo_id)
                 .filter(HistoricoPreco.produto_id.in_(query_produtos))
@@ -84,7 +84,7 @@ class ComprasService:
         Busca compras anteriores daquele mesmo produto naquele mercado específico 
         dentro do histórico do próprio grupo para calcular a tendência local.
         """
-        # 🌟 MODIFICADO: Adicionado filtro de isolamento por grupo_id
+        # Adicionado filtro de isolamento por grupo_id
         historico_local = (self.db.query(HistoricoPreco)
                            .filter(HistoricoPreco.grupo_id == grupo_id)
                            .filter(HistoricoPreco.produto_id == produto_id)
@@ -96,7 +96,7 @@ class ComprasService:
             return f"🔍 Não encontrei registros anteriores de compras deste produto no estabelecimento *{mercado_atual}*."
             
         data_fmt = historico_local.data_compra.strftime('%d/%m/%Y')
-        return (f"📉 *Tendência local para este mercado:*\n"
+        return (f" *Tendência local para este mercado:*\n"
                 f"No dia {data_fmt}, você comprou esse mesmo produto no *{historico_local.mercado}* "
                 f"por *R$ {historico_local.valor_unitario:.2f}* (Quantidade: {historico_local.quantidade}).")
     
