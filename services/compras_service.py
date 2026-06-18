@@ -20,8 +20,11 @@ class ComprasService:
             
         return produto
 
-    def salvar_nota_fiscal(self, dados_nota: NotaFiscalEstruturada, grupo_id: int):
-        """Persiste os dados da nota fiscal extraídos pela IA no banco."""
+    def salvar_nota_fiscal(self, dados_nota: NotaFiscalEstruturada, grupo_id: int, usuario_id: int):
+        """
+        Persiste os dados da nota fiscal extraídos pela IA no banco,
+        vinculando o registro tanto ao grupo (casa) quanto ao usuário que realizou o envio.
+        """
         itens_salvos = 0
         itens_salvos_list: list[dict] = []
         try:
@@ -30,9 +33,11 @@ class ComprasService:
             for item in dados_nota.itens:
                 produto_db = self.obter_ou_criar_produto(item.nome_produto, item.categoria)
                 
+                # 🌟 MODIFICADO: Inclusão do parâmetro usuario_id para diferenciar os gastos do casal
                 novo_historico = HistoricoPreco(
                     produto_id=produto_db.id,
                     grupo_id=grupo_id,
+                    usuario_id=usuario_id,  # Vincula o criador do registro
                     marca=item.marca,
                     valor_unitario=item.valor_unitario,
                     quantidade=item.quantidade,
@@ -58,22 +63,30 @@ class ComprasService:
             print(f"Erro crítico ao persistir nota fiscal: {e}")
             raise e
         
-    def buscar_top3_precos(self, nome_produto: str):
-        """Busca as 3 compras mais baratas registradas para este produto no banco relacional"""
-        query_produtos = self.db.query(Produto.id).filter(Produto.nome_normalizado.ilike(f"%{nome_produto.upper()}%")).subquery()
+    def buscar_top3_precos(self, nome_produto: str, grupo_id: int):
+        """
+        Busca as 3 compras mais baratas registradas para este produto.
+        Isolado por grupo_id para impedir que uma casa veja os dados de outra.
+        """
+        query_produtos = self.db.query(Produto.id).filter(Produto.nome_normalizado.ilike(f"%{nome_produto.upper()}%"))
         
-        # Correção: Query executada diretamente sobre a tabela fato HistoricoPreco
+        # 🌟 MODIFICADO: Adicionado filtro de isolamento por grupo_id
         top3 = (self.db.query(HistoricoPreco)
+                .filter(HistoricoPreco.grupo_id == grupo_id)
                 .filter(HistoricoPreco.produto_id.in_(query_produtos))
                 .order_by(HistoricoPreco.valor_unitario.asc())
                 .limit(3)
                 .all())
         return top3
 
-    def analisar_tendencia_local(self, produto_id: int, mercado_atual: str) -> str:
-        """Busca compras anteriores daquele mesmo produto naquele mercado específico para calcular tendência"""
-        # Correção: Query executada diretamente sobre a tabela fato HistoricoPreco
+    def analisar_tendencia_local(self, produto_id: int, mercado_atual: str, grupo_id: int) -> str:
+        """
+        Busca compras anteriores daquele mesmo produto naquele mercado específico 
+        dentro do histórico do próprio grupo para calcular a tendência local.
+        """
+        # 🌟 MODIFICADO: Adicionado filtro de isolamento por grupo_id
         historico_local = (self.db.query(HistoricoPreco)
+                           .filter(HistoricoPreco.grupo_id == grupo_id)
                            .filter(HistoricoPreco.produto_id == produto_id)
                            .filter(HistoricoPreco.mercado.ilike(f"%{mercado_atual.strip()}%"))
                            .order_by(HistoricoPreco.data_compra.desc())

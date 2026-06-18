@@ -49,7 +49,34 @@ class Usuario(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=False)
     telegram_id = Column(String(50), unique=True, nullable=False, index=True)
     nome = Column(String(100), nullable=False)
+    
     grupos = relationship("GrupoUsuario", back_populates="usuario", cascade="all, delete-orphan")
+    # 🌟 NOVA RELAÇÃO: Permite buscar todas as compras que este usuário específico cadastrou
+    historicos = relationship("HistoricoPreco", back_populates="usuario")
+
+
+class HistoricoPreco(Base):
+    __tablename__ = "historico_precos"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    produto_id = Column(ForeignKey("produtos.id", ondelete="RESTRICT"), nullable=False)
+    grupo_id = Column(BigInteger, ForeignKey("grupos.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # 🌟 NOVA COLUNA: Vincula o preço diretamente ao usuário que enviou a nota/etiqueta
+    # Definido como nullable=True para não quebrar dados antigos caso você já tenha registros no Render.
+    usuario_id = Column(BigInteger, ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True, index=True)
+    
+    marca = Column(String(100), nullable=True)
+    valor_unitario = Column(Float, nullable=False)
+    quantidade = Column(Float, nullable=False)
+    unidade_medida = Column(String(20), nullable=False)
+    mercado = Column(String(100), nullable=False, index=True)
+    data_compra = Column(DateTime, nullable=False, index=True)
+    valor_total = Column(Float, nullable=False)
+    
+    produto = relationship("Produto", back_populates="historicos")
+    grupo = relationship("Grupo", back_populates="historicos")
+    # 🌟 NOVA RELAÇÃO: Acesso direto ao objeto do usuário
+    usuario = relationship("Usuario", back_populates="historicos")
 
 
 class GrupoUsuario(Base):
@@ -69,21 +96,6 @@ class Produto(Base):
     historicos = relationship("HistoricoPreco", back_populates="produto")
 
 
-class HistoricoPreco(Base):
-    __tablename__ = "historico_precos"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    produto_id = Column(ForeignKey("produtos.id", ondelete="RESTRICT"), nullable=False)
-    grupo_id = Column(BigInteger, ForeignKey("grupos.id", ondelete="CASCADE"), nullable=False, index=True)
-    marca = Column(String(100), nullable=True)
-    valor_unitario = Column(Float, nullable=False)
-    quantidade = Column(Float, nullable=False)
-    unidade_medida = Column(String(20), nullable=False)
-    mercado = Column(String(100), nullable=False, index=True)
-    data_compra = Column(DateTime, nullable=False, index=True)
-    valor_total = Column(Float, nullable=False)
-    produto = relationship("Produto", back_populates="historicos")
-    grupo = relationship("Grupo", back_populates="historicos")
-
 class EstadoConversa(Base):
     __tablename__ = "estados_conversa"
 
@@ -92,7 +104,7 @@ class EstadoConversa(Base):
     estado = Column(String, nullable=False) # Ex: "AGUARDANDO_MERCADO"
     produto_contexto_id = Column(Integer, ForeignKey("produtos.id"), nullable=True)
     data_atualizacao = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
 # ENGINE
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
