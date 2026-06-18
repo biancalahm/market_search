@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # 🗄️ BANCO DE DADOS: PostgreSQL do MVP
+ 
   postgres:
     image: postgres:17
     container_name: smartmarket-postgres
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
-  # 📊 GERENCIADOR DO BANCO: PgAdmin
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: smartmarket-pgadmin

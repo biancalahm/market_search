@@ -119,6 +119,8 @@ class GeminiService:
             except Exception as e:
                 print(f"Erro crítico na extração com Ollama/Qwen: {e}")
                 raise e
+  
+    
 
     def responder_consulta_historica(self, pergunta_usuario: str, historico_contexto_txt: str) -> str:
         """Responde às consultas analíticas do usuário usando o provedor ativo."""
@@ -157,3 +159,19 @@ class GeminiService:
                 return response['message']['content']
             except Exception as e:
                 return f"Erro ao processar consulta no Ollama/Qwen: {e}"
+            
+    def extrair_produto_etiqueta(self, imagem_bytes: bytes) -> str:
+        """Extrai apenas o nome limpo e normalizado do produto a partir da foto de uma etiqueta."""
+        prompt = """
+        Você é um scanner especialista em gôndolas de supermercado.
+        Olhe para a foto desta etiqueta de preço e extraia APENAS o nome limpo e genérico do produto principal e o valor de Varejo.
+        
+        Regras:
+        - Remova pesos, volumes e marcas se poluírem o nome base (Ex: 'SABÃO EM PÓ OMO HYPER 1KG' vira 'Sabão em Pó').
+        - Retorne única e exclusivamente uma string com o nome limpo. Não responda com frases ou JSON.
+        """
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=[types.Part.from_bytes(data=imagem_bytes, mime_type="image/jpeg"), prompt]
+        )
+        return response.text.strip()

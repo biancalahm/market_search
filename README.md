@@ -68,8 +68,6 @@ Produtos:
 - Arroz: R$ 3,79
 ```
 
----
-
 ## 🏗 Arquitetura
 
 ```text
@@ -99,9 +97,7 @@ Produtos:
 └────────────────────┘
 ```
 
----
-
-## 🛠 Stack Tecnológica
+## Stack Tecnológica
 
 ### Backend
 
@@ -128,9 +124,7 @@ Produtos:
 
 - Telegram Bot API
 
----
-
-## 📂 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```text
 market_search/
@@ -154,9 +148,7 @@ market_search/
 └── README.md
 ```
 
----
-
-## ⚙️ Configuração Local
+## Configuração Local
 
 ### 1. Clonar o projeto
 

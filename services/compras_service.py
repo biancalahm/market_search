@@ -1,7 +1,7 @@
 #services/ComprasService.py
 from sqlalchemy.orm import Session
 from database.models import Produto, HistoricoPreco, Grupo, Usuario, GrupoUsuario
-from services.gemini_service import NotaFiscalEstruturada
+from services.gemini_service import ItemNotaFiscal, NotaFiscalEstruturada
 from datetime import datetime
 
 class ComprasService:
@@ -67,3 +67,32 @@ class ComprasService:
             self.db.rollback() # Cancela tudo se der erro no meio do caminho para não quebrar o banco
             print(f"Erro crítico ao persistir nota fiscal: {e}")
             raise e
+        
+    def buscar_top3_precos(self, nome_produto: str):
+        """Busca os 3 menores preços registrados para produtos com nomes similares."""
+        # Aqui usamos o ILIKE para fazer uma busca textual aproximada básica
+        # Em etapas futuras, isso pode virar uma busca vetorial (embeddings)
+        query_produtos = self.db.query(Produto.id).filter(Produto.nome_normalizado.ilike(f"%{nome_produto.upper()}%")).subquery()
+        
+        top3 = (self.db.query(ItemNotaFiscal, NotaFiscalEstruturada)
+                .join(NotaFiscalEstruturada)
+                .filter(ItemNotaFiscal.produto_id.in_(query_produtos))
+                .order_by(ItemNotaFiscal.valor_unitario.asc())
+                .limit(3)
+                .all())
+        return top3
+
+    def analisar_tendencia_local(self, produto_id: int, mercado_atual: str) -> str:
+        """Busca compras anteriores daquele mesmo produto naquele mercado específico."""
+        historico_local = (self.db.query(ItemNotaFiscal, NotaFiscalEstruturada)
+                           .join(NotaFiscalEstruturada)
+                           .filter(ItemNotaFiscal.produto_id == produto_id)
+                           .filter(NotaFiscalEstruturada.mercado.ilike(f"%{mercado_atual}%"))
+                           .order_by(NotaFiscalEstruturada.data_compra.desc())
+                           .first())
+        
+        if not historico_local:
+            return f"Não encontrei registros anteriores de compras deste produto no estabelecimento {mercado_atual}."
+            
+        item, nota = historico_local
+        return f"Tendência local: No dia {nota.data_compra.strftime('%d/%m/%Y')}, você comprou esse mesmo produto neste mercado por R$ {item.valor_unitario:.2f} (Preço total do item: R$ {item.valor_total:.2f})."

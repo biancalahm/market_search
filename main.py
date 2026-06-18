@@ -57,7 +57,7 @@ async def processar_evento_telegram(payload: dict):
             # Download dos bytes originais vindos do Telegram
             imagem_bytes_original = await telegram_service.baixar_foto(file_id)
             
-            # ✨ MÁGICA DE ENGENHARIA DE DADOS: Otimização da imagem com OpenCV antes do Gemini
+            #  MÁGICA DE ENGENHARIA DE DADOS: Otimização da imagem com OpenCV antes do Gemini
             imagem_bytes_tratada = ImageService.otimizar_imagem_nota(imagem_bytes_original)
             
             # Passamos os bytes limpos para o Gemini extrair
@@ -69,32 +69,32 @@ async def processar_evento_telegram(payload: dict):
             itens_salvos = resultado_salvamento.get("itens", [])
 
             # Monta resposta amigável listando produtos e preços
-            resposta = f"✅ *Sucesso!* {total_salvo} itens salvos no histórico do grupo.\n\n"
-            resposta += f"🛒 *Mercado:* {dados_nota.mercado}\n"
-            resposta += f"💰 *Total Geral:* R$ {dados_nota.valor_total_nota:.2f}\n\n*Produtos Adicionados:*\n"
+            resposta = f"*Sucesso!* {total_salvo} itens salvos no histórico do grupo.\n\n"
+            resposta += f" *Mercado:* {dados_nota.mercado}\n"
+            resposta += f" *Total Geral:* R$ {dados_nota.valor_total_nota:.2f}\n\n*Produtos Adicionados:*\n"
             for item in itens_salvos:
                 resposta += f"- {item['nome_produto']}: R$ {item['valor_unitario']:.2f}\n"
 
             await telegram_service.enviar_mensagem(chat_id, resposta)
 
-        # 💬 CENÁRIO B: O Usuário enviou um TEXTO (Consulta ou Comando)
+        #  CENÁRIO B: O Usuário enviou um TEXTO (Consulta ou Comando)
         elif "text" in message:
             texto = message["text"]
             
             if texto.startswith("/start"):
                 await telegram_service.enviar_mensagem(
                     chat_id, 
-                    "👋 *Olá! Sou seu Assistente Inteligente de Compras.*\n\n"
+                    "*Olá! Sou seu Assistente Inteligente de Compras.*\n\n"
                     "Envie a *foto de uma nota fiscal* para eu cadastrar os produtos automaticamente, ou faça perguntas sobre seus gastos!"
                 )
             else:
                 # Aqui entra o RF07 e RF08: Buscar histórico e responder em linguagem natural
                 # Como o agente de consultas será o próximo passo, vamos colocar uma resposta temporária:
-                await telegram_service.enviar_mensagem(chat_id, f"🤔 Você disse: '{texto}'. Em breve responderei consultas analíticas aqui!")
+                await telegram_service.enviar_mensagem(chat_id, f"Você disse: '{texto}'. Em breve responderei consultas analíticas aqui!")
 
     except Exception as e:
         print(f"Erro ao processar mensagem do Telegram: {e}")
-        await telegram_service.enviar_mensagem(chat_id, "❌ Desculpe, ocorreu um erro interno ao processar sua solicitação.")
+        await telegram_service.enviar_mensagem(chat_id, "Desculpe, ocorreu um erro interno ao processar sua solicitação.")
     finally:
         db.close()
 
