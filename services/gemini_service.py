@@ -164,7 +164,7 @@ class GeminiService:
         """Extrai apenas o nome limpo e normalizado do produto a partir da foto de uma etiqueta."""
         prompt = """
         Você é um scanner especialista em gôndolas de supermercado.
-        Olhe para a foto desta etiqueta de preço e extraia APENAS o nome limpo e genérico do produto principal e o valor de Varejo.
+        Olhe para a foto desta etiqueta de preço e extraia APENAS o nome do produto  Deve ser o nome GENÉRICO e LIMPO  sem marca e peso limpo e genérico do produto principal e o valor de Varejo.
         
         Regras:
         - Remova pesos, volumes e marcas se poluírem o nome base (Ex: 'SABÃO EM PÓ OMO HYPER 1KG' vira 'Sabão em Pó').
